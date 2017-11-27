@@ -2,15 +2,16 @@ package org.jenkinsci.plugins.karafbuildstep;
 
 import java.io.IOException;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import hudson.DescriptorExtensionList;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.Proc;
 import hudson.model.AbstractProject;
 import hudson.model.Result;
 import hudson.model.Run;
@@ -23,149 +24,142 @@ import net.sf.json.JSONObject;
 
 /**
  * Build step which executes various Karaf commands via Karaf client.
- * 
+ *
  * @author <a href="mailto:jgalego1990@gmail.com">João Galego</a>
  *
  */
 public class KarafBuildStepBuilder extends Builder implements SimpleBuildStep {
 
-	private boolean useCustomKaraf;
-	private String karafHome;
-	private String flags;
-	private String script;
+    private static final Logger LOGGER = LoggerFactory.getLogger(KarafBuildStepBuilder.class);
 
-	// Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
-	@DataBoundConstructor
-	public KarafBuildStepBuilder(boolean useCustomKaraf, String karafHome, String flags, String script) {
-		this.useCustomKaraf = useCustomKaraf;
-		this.karafHome = karafHome;
-		this.flags = flags;
-		this.script = script;
-	}
+    // Constants
+    private static final String EMPTY_FIELD_MESSAGE = "This field should not be empty";
 
-	public boolean getUseCustomKaraf() {
-		return useCustomKaraf;
-	}
+    // Form parameters
+    private boolean useCustomKaraf;
 
-	public String getKarafHome() {
-		return karafHome;
-	}
+    private String karafHome;
 
-	public String getFlags() {
-		return flags;
-	}
+    private String flags;
 
-	public String getScript() {
-		return script;
-	}
+    private KarafCommandOption option;
 
-	@Override
-	public void perform(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener)
-			throws InterruptedException, IOException {
-		try{
-			// Get Karaf Home
-			String karafHome = getUseCustomKaraf() ? getKarafHome() : getDescriptor().getDefaultKarafHome();
+    // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
+    @DataBoundConstructor
+    public KarafBuildStepBuilder(boolean useCustomKaraf, String karafHome, String flags, KarafCommandOption option) {
+        this.useCustomKaraf = useCustomKaraf;
+        this.karafHome = karafHome;
+        this.flags = flags;
+        this.option = option;
+    }
 
-			if(!karafHome.isEmpty()) {
-				// Construct Command
-				listener.getLogger().println(getScript());
+    public boolean getUseCustomKaraf() {
+        return useCustomKaraf;
+    }
 
-				// Initialize command
-				StringBuilder command = new StringBuilder();
-				command.append(karafHome);
+    public String getKarafHome() {
+        return karafHome;
+    }
 
-				// Select Karaf client according to the OS
-				if(SystemUtils.IS_OS_LINUX) {
-					command.append("/bin/client");
-				} else if (SystemUtils.IS_OS_WINDOWS) {
-					command.append("/bin/client.bat");
-				}
+    public String getFlags() {
+        return flags;
+    }
 
-				// Add flags
-				String flags = getFlags();
-				if(!flags.isEmpty()) {
-					command.append(" " + getFlags().trim());
-				}
+    public KarafCommandOption getOption() {
 
-				// Add script file
-				command.append(" -f " + getScript().trim());
+        return option;
+    }
 
-				// Launch Command
-				Proc proc = launcher.launch(command.toString(), build.getEnvironment(listener), listener.getLogger(), workspace);
+    @Override
+    public void perform(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener)
+            throws InterruptedException, IOException {
+        try{
+            LOGGER.info("Starting karaf command");
+            int exitCode = option.execute(build, workspace, launcher, listener, this);
 
-				// Exit Code
-				int exitCode = proc.join();
+            // Error Handling and Build Result
+            LOGGER.info("Karaf command exit code: {}", exitCode);
+            if (exitCode == 0) {
+                build.setResult(Result.SUCCESS);
+            }
+            else {
+                build.setResult(Result.FAILURE);
+            }
+        }
+        catch (KarafCommandException ex) {
+            ex.printStackTrace();
+        }
+    }
 
-				// Error Handling and Build Result
-				if(exitCode == 0) {
-					build.setResult(Result.SUCCESS);
-				} else {
-					build.setResult(Result.FAILURE);
-				}
-			}else{
-				listener.getLogger().println("ERROR: KARAF_HOME is not specified!");
-			}
-		}catch(IOException | InterruptedException e){
-			e.printStackTrace();
-			listener.getLogger().print(e.getMessage());
-		}
-	}
+    @Override
+    public DescriptorImpl getDescriptor() {
 
-	@Override
-	public DescriptorImpl getDescriptor() {
-		return (DescriptorImpl)super.getDescriptor();
-	}
+        return (DescriptorImpl) super.getDescriptor();
+    }
 
-	@Extension
-	public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
+    @Extension
+    public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
 
-		private String defaultKarafHome;
+        private String defaultKarafHome = "/default/path/to/karaf";
 
-		public DescriptorImpl() {
-			load();
-		}
+        public DescriptorImpl() {
+            load();
+        }
 
-		public boolean isApplicable(Class<? extends AbstractProject> aClass) {
-			// Indicates that this builder can be used with all kinds of project types
-			return true;
-		}
+        @Override
+        public boolean isApplicable(@SuppressWarnings("rawtypes") Class<? extends AbstractProject> aClass) {
+            // Indicates that this builder can be used with all kinds of project types
+            return true;
+        }
 
-		public String getDisplayName() {
-			return "Execute Karaf script";
-		}
+        @Override
+        public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
+            // To persist global configuration information,
+            // set that to properties and call save().
+            defaultKarafHome = formData.getString("defaultKarafHome");
 
-		@Override
-		public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-			// To persist global configuration information,
-			// set that to properties and call save().
-			defaultKarafHome = formData.getString("defaultKarafHome");
+            // Can also use req.bindJSON(this, formData)
+            save();
 
-			// Can also use req.bindJSON(this, formData)
-			save();
+            return super.configure(req, formData);
+        }
 
-			return super.configure(req, formData);
-		}
+        /* Getters */
 
-		private String getDefaultKarafHome() {
-			return defaultKarafHome;
-		}
+        @Override
+        public String getDisplayName() {
 
-		public FormValidation doCheckKarafHome(@QueryParameter String value, @QueryParameter boolean useCustomKaraf) {
+            return "Execute Karaf command";
+        }
 
-			if(useCustomKaraf && value.isEmpty()) {
-				return FormValidation.warning("This field should not be empty");
-			}
+        public String getDefaultKarafHome() {
 
-			return FormValidation.ok();
-		}
+            return defaultKarafHome;
+        }
 
-		public FormValidation doCheckScript(@QueryParameter String value) {
+        public static DescriptorExtensionList<KarafCommandOption, KarafCommandOptionDescriptor> getOptionList() {
 
-			if(value.isEmpty()) {
-				return FormValidation.error("This field should not be empty");
-			}
+            return KarafCommandOptionDescriptor.all();
+        }
 
-			return FormValidation.ok();
-		}
-	}
+        /* Form Validation */
+
+        public FormValidation doCheckKarafHome(@QueryParameter String value, @QueryParameter boolean useCustomKaraf) {
+
+            if(useCustomKaraf && value.isEmpty()) {
+                return FormValidation.warning(EMPTY_FIELD_MESSAGE);
+            }
+
+            return FormValidation.ok();
+        }
+
+        public FormValidation doCheckScript(@QueryParameter String value) {
+
+            if(value.isEmpty()) {
+                return FormValidation.error(EMPTY_FIELD_MESSAGE);
+            }
+
+            return FormValidation.ok();
+        }
+    }
 }
