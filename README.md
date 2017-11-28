@@ -1,5 +1,14 @@
 ## Karaf Build Step Plugin for Jenkins
 
+
+
 Experimental Jenkins plugin to run Karaf commands as build steps.
 
-<img src="images/execute_karaf_script_build_step.png">
+### Execute from File
+
+<img src="images/karaf_build_step_execute_from_file.png">
+
+
+### Execute from Script
+
+<img src="images/karaf_build_step_execute_from_script.png">
