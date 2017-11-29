@@ -45,6 +45,12 @@
 		</developer>
 	</developers>
 
+	<scm>
+		<connection>scm:git:ssh://github.com/jenkinsci/karaf-build-step-plugin.git</connection>
+		<developerConnection>scm:git:ssh://git@github.com/jenkinsci/karaf-build-step-plugin.git</developerConnection>
+		<url>https://github.com/jenkinsci/karaf-build-step-plugin</url>
+	</scm>
+
 	<dependencies>
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
 		<dependency>
@@ -96,7 +102,7 @@
 										</goals>
 									</pluginExecutionFilter>
 									<action>
-										<ignore></ignore>
+										<ignore/>
 									</action>
 								</pluginExecution>
 							</pluginExecutions>
