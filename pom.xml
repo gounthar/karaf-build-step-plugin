@@ -15,19 +15,19 @@
 	<packaging>hpi</packaging>
 
 	<properties>
-		<!-- Baseline Jenkins version you use to build the plugin. Users must have 
+		<!-- Baseline Jenkins version you use to build the plugin. Users must have
 			this version or newer to run. -->
 		<jenkins.version>1.625.3</jenkins.version>
-		<!-- Other properties you may want to use: ~ java.level: set to 6 if your 
-			jenkins.version <= 1.611 ~ jenkins-test-harness.version: Jenkins Test Harness 
-			version you use to test the plugin. For Jenkins version >= 1.580.1 use JTH 
-			2.0 or higher. ~ hpi-plugin.version: The HPI Maven Plugin version used by 
-			the plugin.. ~ stapler-plugin.version: The Stapler Maven plugin version required 
+		<!-- Other properties you may want to use: ~ java.level: set to 6 if your
+			jenkins.version <= 1.611 ~ jenkins-test-harness.version: Jenkins Test Harness
+			version you use to test the plugin. For Jenkins version >= 1.580.1 use JTH
+			2.0 or higher. ~ hpi-plugin.version: The HPI Maven Plugin version used by
+			the plugin.. ~ stapler-plugin.version: The Stapler Maven plugin version required
 			by the plugin. -->
 	</properties>
 
 	<name>Karaf Build Step Plugin</name>
-	<description>Execute Karaf commands from a file</description>
+	<description>Execute Karaf commands from a file or a script</description>
 	<url>https://wiki.jenkins-ci.org/display/JENKINS/Karaf+Build+Step+Plugin</url>
 
 	<licenses>
@@ -71,7 +71,7 @@
 	<build>
 		<pluginManagement>
 			<plugins>
-				<!--This plugin's configuration is used to store Eclipse m2e settings 
+				<!--This plugin's configuration is used to store Eclipse m2e settings
 					only. It has no influence on the Maven build itself. -->
 				<plugin>
 					<groupId>org.eclipse.m2e</groupId>

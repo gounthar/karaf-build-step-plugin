@@ -30,6 +30,7 @@ import net.sf.json.JSONObject;
  */
 public class KarafBuildStepBuilder extends Builder implements SimpleBuildStep {
 
+    // Logger
     private static final Logger LOGGER = LoggerFactory.getLogger(KarafBuildStepBuilder.class);
 
     // Constants
@@ -44,7 +45,6 @@ public class KarafBuildStepBuilder extends Builder implements SimpleBuildStep {
 
     private KarafCommandOption option;
 
-    // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
     public KarafBuildStepBuilder(boolean useCustomKaraf, String karafHome, String flags, KarafCommandOption option) {
         this.useCustomKaraf = useCustomKaraf;
@@ -74,11 +74,10 @@ public class KarafBuildStepBuilder extends Builder implements SimpleBuildStep {
     public void perform(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener)
             throws InterruptedException, IOException {
         try{
-            LOGGER.info("Starting karaf command");
+            LOGGER.info("Executing Karaf Build Step");
             int exitCode = option.execute(build, workspace, launcher, listener, this);
 
-            // Error Handling and Build Result
-            LOGGER.info("Karaf command exit code: {}", exitCode);
+            LOGGER.info("Exit code: {}", exitCode);
             if (exitCode == 0) {
                 build.setResult(Result.SUCCESS);
             }
@@ -87,6 +86,7 @@ public class KarafBuildStepBuilder extends Builder implements SimpleBuildStep {
             }
         }
         catch (KarafCommandException ex) {
+            LOGGER.error("Karaf Build Step failed to execute", ex);
             ex.printStackTrace();
         }
     }
@@ -123,8 +123,6 @@ public class KarafBuildStepBuilder extends Builder implements SimpleBuildStep {
 
             return super.configure(req, formData);
         }
-
-        /* Getters */
 
         @Override
         public String getDisplayName() {
